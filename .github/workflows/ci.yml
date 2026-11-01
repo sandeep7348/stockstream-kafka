@@ -112,7 +112,7 @@ jobs:
             type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
       - name: Build and publish
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.image.context }}
           push: ${{ env.PUBLISH == 'true' }}
