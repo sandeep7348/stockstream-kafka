@@ -1,0 +1,36 @@
+name: Temporary MongoDB diagnostic
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  mongo:
+    name: Mongo on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    steps:
+      - name: Try MongoDB versions
+        shell: bash
+        run: |
+          set +e +o pipefail
+          echo "::notice title=Kernel ${{ matrix.os }}::$(uname -r)"
+          try() {
+            label="$1"; shift
+            docker run -d --name "$label" "$@" --replSet docker-rs >/dev/null 2>&1
+            sleep 10
+            state="$(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}}' "$label" 2>&1)"
+            fatal="$(docker logs "$label" 2>&1 | grep '"s":"F"' | head -n 1 | cut -c1-500)"
+            echo "::notice title=${label} ${{ matrix.os }}::${state} ${fatal}"
+          }
+          try m80 mongo:8.0
+          try m70 mongo:7.0
+          try m82 mongo:8.2
+          try m80rseq -e GLIBC_TUNABLES=glibc.pthread.rseq=0 mongo:8.0
