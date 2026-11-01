@@ -28,9 +28,19 @@ jobs:
           cache: maven
       # Integration tests start real Kafka, Redis and MongoDB through Testcontainers.
       - name: Build and test
+        shell: bash
         run: |
           chmod +x mvnw
-          ./mvnw -B -ntp verify
+          ./mvnw -B -ntp verify | tee build.log
+      # Annotations show on the run's page without opening the full log.
+      - name: Report failures
+        if: failure()
+        shell: bash
+        run: |
+          docker version --format 'Docker {{.Server.Version}} API {{.Server.APIVersion}}' || true
+          { grep -E '^\[ERROR\]' build.log || true; } | cut -c1-280 | head -n 8 | while IFS= read -r line; do
+            echo "::error title=Build::${line}"
+          done
       - name: Keep test reports on failure
         if: failure()
         uses: actions/upload-artifact@v4
