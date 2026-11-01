@@ -37,7 +37,13 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          docker version --format 'Docker {{.Server.Version}} API {{.Server.APIVersion}}' || true
+          echo "::notice title=Environment::$(docker version --format 'Docker {{.Server.Version}} API {{.Server.APIVersion}}' 2>&1); $(. /etc/os-release && echo "$PRETTY_NAME")"
+          { grep -hE 'tc\.mongo|Docker version|API Version|Testcontainers version' build.log || true; } | cut -c1-240 | head -n 8 | while IFS= read -r line; do
+            echo "::notice title=Containers::${line}"
+          done
+          { grep -E '^\[(INFO|ERROR)\] +(Tests run:.* -- in|Tests run: [0-9]+, F)' build.log || true; } | sed 's/\[ERROR\]/[FAILED]/' | cut -c1-200 | tail -n 8 | while IFS= read -r line; do
+            echo "::warning title=Summary::${line}"
+          done
           # Root causes first: one startup failure can fail every test in a class.
           { grep -hE '^Caused by:' target/surefire-reports/*.txt || true; } | cut -c1-280 | sort -u | head -n 6 | while IFS= read -r line; do
             echo "::error title=Cause::${line}"
