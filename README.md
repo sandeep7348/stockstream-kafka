@@ -148,6 +148,8 @@ Then open http://localhost:5173. See [frontend/README.md](frontend/README.md) to
 
 Dependabot proposes dependency updates monthly. Deploying to a server isn't included, because that depends on where the app is hosted.
 
+Tests use MongoDB 8.2, because MongoDB 8.0 refuses to start on Linux kernels from 6.19 up to 7.0.13 ([SERVER-121912](https://jira.mongodb.org/browse/SERVER-121912)), which includes GitHub's current runners. `docker-compose.yml` still uses 8.0, so on an affected machine change its image to `mongo:8.2`. That upgrades any existing data in place, so back it up first.
+
 To run the full system from containers, with the dashboard at http://localhost:8088:
 
 ```bash

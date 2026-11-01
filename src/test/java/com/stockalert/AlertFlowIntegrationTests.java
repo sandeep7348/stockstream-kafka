@@ -61,7 +61,7 @@ class AlertFlowIntegrationTests {
 
 	@Container
 	@ServiceConnection
-	static final MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:8.0"));
+	static final MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:8.2"));
 
 	@Container
 	@ServiceConnection(name = "redis")
