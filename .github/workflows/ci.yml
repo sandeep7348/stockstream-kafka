@@ -38,7 +38,11 @@ jobs:
         shell: bash
         run: |
           docker version --format 'Docker {{.Server.Version}} API {{.Server.APIVersion}}' || true
-          { grep -E '^\[ERROR\]' build.log || true; } | cut -c1-280 | head -n 8 | while IFS= read -r line; do
+          # Root causes first: one startup failure can fail every test in a class.
+          { grep -hE '^Caused by:' target/surefire-reports/*.txt || true; } | cut -c1-280 | sort -u | head -n 6 | while IFS= read -r line; do
+            echo "::error title=Cause::${line}"
+          done
+          { grep -E '^\[ERROR\] (Tests run|.*FAILURE|.*Tests)' build.log || true; } | cut -c1-280 | head -n 3 | while IFS= read -r line; do
             echo "::error title=Build::${line}"
           done
       - name: Keep test reports on failure
