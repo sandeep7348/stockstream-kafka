@@ -38,8 +38,20 @@ jobs:
         shell: bash
         run: |
           echo "::notice title=Environment::$(docker version --format 'Docker {{.Server.Version}} API {{.Server.APIVersion}}' 2>&1); $(. /etc/os-release && echo "$PRETTY_NAME")"
-          { grep -hE 'tc\.mongo|Docker version|API Version|Testcontainers version' build.log || true; } | cut -c1-240 | head -n 8 | while IFS= read -r line; do
-            echo "::notice title=Containers::${line}"
+          { grep -hE 'tc\.mongo' build.log | grep -v 'Pulling\|Starting to pull' || true; } | cut -c1-240 | head -n 5 | while IFS= read -r line; do
+            echo "::notice title=TC::${line}"
+          done
+          docker run -d --name diag mongo:8.0 --replSet docker-rs >/dev/null 2>&1 || true
+          sleep 12
+          echo "::notice title=State::$(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} image={{.Image}}' diag 2>&1)"
+          { docker logs diag 2>&1 | grep -iE '"s":"(E|F|W)"|error|fatal|illegal' || true; } | cut -c1-220 | head -n 4 | while IFS= read -r line; do
+            echo "::notice title=MongoLog::${line}"
+          done
+          { grep -n -A2 -m1 'should be started first' build.log || true; } | cut -c1-220 | while IFS= read -r line; do
+            echo "::warning title=FirstError::${line}"
+          done
+          { grep -hE 'Exception|ERROR.*testcontainers|Could not|Timed out' build.log | grep -v 'should be started first\|UnsatisfiedDependency\|BeanCreation\|BeanInstantiation\|^\[ERROR\]' || true; } | cut -c1-220 | sort -u | head -n 5 | while IFS= read -r line; do
+            echo "::warning title=Other::${line}"
           done
           { grep -E '^\[(INFO|ERROR)\] +(Tests run:.* -- in|Tests run: [0-9]+, F)' build.log || true; } | sed 's/\[ERROR\]/[FAILED]/' | cut -c1-200 | tail -n 8 | while IFS= read -r line; do
             echo "::warning title=Summary::${line}"
